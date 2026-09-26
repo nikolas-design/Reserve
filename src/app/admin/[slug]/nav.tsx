@@ -8,6 +8,7 @@ const items = [
   { href: "/floor", label: "Κάτοψη" },
   { href: "/waitlist", label: "Λίστα αναμονής" },
   { href: "/customers", label: "Πελάτες" },
+  { href: "/reports", label: "Αναφορές" },
   { href: "/settings", label: "Ρυθμίσεις" },
 ];
 
