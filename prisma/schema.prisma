@@ -67,6 +67,14 @@ model Venue {
   lateGraceMinutes      Int     @default(20)
   termsText             String?
 
+  // Reminders: channels is a comma list of email | sms | viber
+  reminderEnabled        Boolean @default(true)
+  reminderHoursBefore    Int     @default(24)
+  reminderChannels       String  @default("email,sms")
+  autoReleaseEnabled     Boolean @default(false) // cancel unconfirmed reservations
+  autoReleaseHoursBefore Int     @default(3)
+  smsSenderName          String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -78,6 +86,7 @@ model Venue {
   customers    Customer[]
   reservations Reservation[]
   waitlist     WaitlistEntry[]
+  messages     MessageLog[]
 }
 
 // A room / zone of the venue (Εσωτερικά, Βεράντα, Μπαρ)
@@ -195,6 +204,9 @@ model Reservation {
   confirmedAt   DateTime?
   seatedAt      DateTime?
   cancelledAt   DateTime?
+  reminderSentAt   DateTime? // last reminder delivered
+  guestConfirmedAt DateTime? // guest tapped "Ναι, θα έρθω"
+  releasedAt       DateTime? // auto-cancelled because the guest never confirmed
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -202,6 +214,7 @@ model Reservation {
   customer Customer           @relation(fields: [customerId], references: [id])
   area     Area?              @relation(fields: [areaId], references: [id], onDelete: SetNull)
   tables   ReservationTable[]
+  messages MessageLog[]
 
   @@index([venueId, date])
   @@index([venueId, startAt])
@@ -232,4 +245,22 @@ model WaitlistEntry {
   customer      Customer  @relation(fields: [customerId], references: [id])
 
   @@index([venueId, status])
+}
+
+// Every guest message we send. channel: email | sms | viber; status: SENT | FAILED | LOGGED
+model MessageLog {
+  id            String       @id @default(cuid())
+  venueId       String
+  reservationId String?
+  channel       String
+  kind          String // confirmation | reminder | cancellation | release
+  to            String
+  body          String
+  status        String
+  error         String?
+  createdAt     DateTime     @default(now())
+  venue         Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  reservation   Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([venueId, createdAt])
 }

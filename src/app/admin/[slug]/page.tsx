@@ -4,7 +4,7 @@ import { SOURCE_LABEL, type ReservationSource, type ReservationStatus } from "@/
 import { prisma } from "@/lib/prisma";
 import { addDaysYmd, formatYmdLong, todayYmd, utcToZoned } from "@/lib/time";
 import { myVenue } from "@/lib/venue-access";
-import { setReservationStatus, staffCancel, updateInternalNotes } from "./actions";
+import { sendReminderNow, setReservationStatus, staffCancel, updateInternalNotes } from "./actions";
 import { NewReservationDialog } from "./new-reservation";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +94,8 @@ export default async function TodayPage({ params, searchParams }: PageProps<"/ad
                     </Link>
                     <span className="num text-ink-2">· {r.partySize} άτ.</span>
                     <StatusPill status={r.status} />
+                    {r.guestConfirmedAt && <span className="pill bg-ok-soft text-ok" title="Ο πελάτης επιβεβαίωσε ότι θα έρθει">✓ επιβεβαίωσε ο πελάτης</span>}
+                    {r.releasedAt && <span className="pill bg-bad-soft text-bad">αυτόματη απελευθέρωση</span>}
                   </div>
                   <p className="text-xs text-ink-3">
                     {tableNames ? <b className="text-ink-2">{tableNames}</b> : <b className="text-bad">χωρίς τραπέζι</b>}
@@ -124,6 +126,14 @@ export default async function TodayPage({ params, searchParams }: PageProps<"/ad
                       <button className={`${n.tone} px-3 py-1.5 text-xs`}>{n.label}</button>
                     </form>
                   ))}
+                  {r.status === "CONFIRMED" && !r.guestConfirmedAt && (
+                    <form action={sendReminderNow}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <button className="btn-ghost px-3 py-1.5 text-xs" title={r.reminderSentAt ? `Στάλθηκε ${utcToZoned(r.reminderSentAt, venue.timezone).hm}` : "Αποστολή υπενθύμισης τώρα"}>
+                        {r.reminderSentAt ? "Ξανά υπενθύμιση" : "Υπενθύμιση"}
+                      </button>
+                    </form>
+                  )}
                   {(r.status === "CONFIRMED" || r.status === "PENDING") && (
                     <form action={staffCancel}>
                       <input type="hidden" name="id" value={r.id} />

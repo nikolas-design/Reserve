@@ -70,6 +70,36 @@ export function VenueForm({ venue: v }: { venue: Venue }) {
         <label htmlFor="termsText" className="label">Όροι κράτησης (εμφανίζονται στον πελάτη)</label>
         <textarea id="termsText" name="termsText" rows={3} defaultValue={v.termsText ?? ""} className="input resize-none" />
       </div>
+
+      <div>
+        <h2 className="font-bold">Υπενθυμίσεις & επιβεβαίωση</h2>
+        <p className="text-sm text-ink-3">Ο πελάτης λαμβάνει υπενθύμιση με κουμπί «Ναι, θα έρθω». Αν δεν απαντήσει, μπορεί το τραπέζι να απελευθερωθεί αυτόματα.</p>
+      </div>
+      <label className="flex items-center gap-2 text-sm font-semibold">
+        <input type="checkbox" name="reminderEnabled" defaultChecked={v.reminderEnabled} className="h-4 w-4 accent-accent" />
+        Αποστολή υπενθύμισης
+      </label>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <F id="reminderHoursBefore" label="Πόσες ώρες πριν" type="number" min={1} max={168} defaultValue={v.reminderHoursBefore} />
+        <div>
+          <span className="label">Κανάλια</span>
+          <div className="flex flex-wrap gap-1.5">
+            {[["email", "Email"], ["sms", "SMS"], ["viber", "Viber"]].map(([val, l]) => (
+              <label key={val} className="cursor-pointer rounded-full border border-line bg-surface px-3 py-2 text-xs font-bold has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-surface">
+                <input type="checkbox" name="reminderChannels" value={val} defaultChecked={v.reminderChannels.split(",").includes(val)} className="sr-only" />{l}
+              </label>
+            ))}
+          </div>
+        </div>
+        <F id="smsSenderName" label="Αποστολέας SMS" hint="(έως 11 λατινικοί χαρακτήρες)" defaultValue={v.smsSenderName ?? ""} maxLength={11} placeholder="Metropolis" />
+      </div>
+      <label className="flex items-center gap-2 text-sm font-semibold">
+        <input type="checkbox" name="autoReleaseEnabled" defaultChecked={v.autoReleaseEnabled} className="h-4 w-4 accent-accent" />
+        Αυτόματη απελευθέρωση τραπεζιού αν ο πελάτης δεν επιβεβαιώσει
+      </label>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <F id="autoReleaseHoursBefore" label="Πόσες ώρες πριν την άφιξη" type="number" min={1} max={72} defaultValue={v.autoReleaseHoursBefore} />
+      </div>
       <div className="flex items-center gap-3">
         <button disabled={pending} className="btn-primary">{pending ? "Αποθήκευση…" : "Αποθήκευση"}</button>
         <Msg state={state} />

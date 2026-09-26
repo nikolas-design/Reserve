@@ -11,7 +11,7 @@ export const metadata = { title: "Η κράτησή μου" };
 
 export default async function ManageReservationPage({ params, searchParams }: PageProps<"/r/[code]">) {
   const { code } = await params;
-  const { t, new: isNew } = await searchParams;
+  const { t, new: isNew, confirmed } = await searchParams;
   const r = await prisma.reservation.findUnique({
     where: { code },
     include: { venue: true, customer: true, area: true },
@@ -32,6 +32,9 @@ export default async function ManageReservationPage({ params, searchParams }: Pa
   return (
     <div className="flex-1 px-4 py-6 sm:py-10">
       <div className="mx-auto w-full max-w-md flex flex-col gap-4">
+        {confirmed === "1" && active && (
+          <div className="rounded-[18px] bg-ok-soft px-4 py-3 text-sm font-semibold text-ok">Ευχαριστούμε! Σημειώσαμε ότι θα έρθετε.</div>
+        )}
         {isNew === "1" && active && (
           <div className="rounded-[18px] bg-ok-soft px-4 py-3 text-sm font-semibold text-ok">
             {status === "PENDING"
@@ -71,6 +74,9 @@ export default async function ManageReservationPage({ params, searchParams }: Pa
 
           {active && (
             <div className="flex flex-col gap-2">
+              {!r.guestConfirmedAt && status === "CONFIRMED" && (
+                <a href={`/c/${r.code}/${r.manageToken}`} className="btn-primary w-full">Ναι, θα έρθω ✓</a>
+              )}
               <a href={`/r/${r.code}/calendar?t=${r.manageToken}`} className="btn-ghost w-full">
                 Προσθήκη στο ημερολόγιο
               </a>

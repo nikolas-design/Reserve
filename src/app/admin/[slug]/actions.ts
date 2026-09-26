@@ -8,7 +8,7 @@ import { signOut } from "@/lib/auth";
 import { cancelReservation } from "@/lib/booking";
 import { ACTIVE_STATUSES, RESERVATION_STATUS, type ReservationStatus } from "@/lib/constants";
 import { normalizePhone, reservationCode, secretToken } from "@/lib/ids";
-import { sendReservationEmail } from "@/lib/notify";
+import { sendReminder, sendReservationEmail } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { requireVenueAccess } from "@/lib/auth";
 import { hmToMinutes, zonedToUtc } from "@/lib/time";
@@ -292,10 +292,26 @@ const venueSchema = z.object({
   cancellationHours: z.coerce.number().int().min(0),
   lateGraceMinutes: z.coerce.number().int().min(0),
   termsText: z.string().trim().max(1000).optional().or(z.literal("")),
+  reminderEnabled: z.string().optional(),
+  reminderHoursBefore: z.coerce.number().int().min(1).max(168),
+  reminderChannels: z.string().optional().or(z.literal("")),
+  autoReleaseEnabled: z.string().optional(),
+  autoReleaseHoursBefore: z.coerce.number().int().min(1).max(72),
+  smsSenderName: z.string().trim().max(11).optional().or(z.literal("")),
 });
 
+export async function sendReminderNow(formData: FormData): Promise<void> {
+  const id = String(formData.get("id"));
+  const r = await prisma.reservation.findUniqueOrThrow({ where: { id }, include: { venue: true, customer: true } });
+  await guard(r.venueId);
+  await sendReminder(r);
+  revalidatePath(`/admin/${r.venue.slug}`, "layout");
+}
+
 export async function updateVenue(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const parsed = venueSchema.safeParse(Object.fromEntries(formData.entries()));
+  const rawVenue = Object.fromEntries(formData.entries());
+  rawVenue.reminderChannels = formData.getAll("reminderChannels").join(",");
+  const parsed = venueSchema.safeParse(rawVenue);
   if (!parsed.success) return { error: `Ελέγξτε το πεδίο «${String(parsed.error.issues[0]?.path[0])}».` };
   const d = parsed.data;
   const { membership } = await guard(d.id);
@@ -322,6 +338,12 @@ export async function updateVenue(_prev: ActionState, formData: FormData): Promi
       cancellationHours: d.cancellationHours,
       lateGraceMinutes: d.lateGraceMinutes,
       termsText: d.termsText || null,
+      reminderEnabled: d.reminderEnabled === "on",
+      reminderHoursBefore: d.reminderHoursBefore,
+      reminderChannels: d.reminderChannels || "email",
+      autoReleaseEnabled: d.autoReleaseEnabled === "on",
+      autoReleaseHoursBefore: d.autoReleaseHoursBefore,
+      smsSenderName: d.smsSenderName || null,
     },
   });
   revalidatePath(`/admin/${venue.slug}`, "layout");
