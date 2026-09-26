@@ -1,0 +1,241 @@
+// Reserve — data model
+// Dev uses SQLite; switch `provider` to "postgresql" (and DATABASE_URL) for production.
+// Status-like fields are strings (see src/lib/constants.ts) so the schema works on both databases.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Accounts ----------
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  memberships  VenueMember[]
+}
+
+// A person's role inside one venue. OWNER | MANAGER | HOST
+model VenueMember {
+  id      String @id @default(cuid())
+  userId  String
+  venueId String
+  role    String @default("HOST")
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, venueId])
+}
+
+// ---------- Venue & floor ----------
+
+model Venue {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  tagline     String?
+  description String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  timezone    String  @default("Europe/Athens")
+  locale      String  @default("el")
+  currency    String  @default("EUR")
+  brandColor  String  @default("#2B5CFF")
+  logoText    String?
+  coverUrl    String?
+
+  // Booking rules
+  slotMinutes        Int     @default(30)  // grid of bookable times
+  defaultDurationMin Int     @default(120) // how long a party holds a table
+  minPartyOnline     Int     @default(1)
+  maxPartyOnline     Int     @default(8)   // larger parties are asked to call
+  minLeadMinutes     Int     @default(60)  // earliest online booking from now
+  maxAdvanceDays     Int     @default(60)
+  autoConfirm        Boolean @default(true) // false => reservations start PENDING
+
+  // Deposit / cancellation policy
+  depositEnabled        Boolean @default(false)
+  depositPerPersonCents Int     @default(0)
+  depositFromPartySize  Int     @default(7)
+  cancellationHours     Int     @default(48)
+  lateGraceMinutes      Int     @default(20)
+  termsText             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members      VenueMember[]
+  areas        Area[]
+  tables       Table[]
+  shifts       Shift[]
+  specialDays  SpecialDay[]
+  customers    Customer[]
+  reservations Reservation[]
+  waitlist     WaitlistEntry[]
+}
+
+// A room / zone of the venue (Εσωτερικά, Βεράντα, Μπαρ)
+model Area {
+  id               String        @id @default(cuid())
+  venueId          String
+  name             String
+  sortOrder        Int           @default(0)
+  isOnlineBookable Boolean       @default(true)
+  venue            Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tables           Table[]
+  reservations     Reservation[]
+}
+
+// A table on the floor plan. shape: RECT | ROUND
+model Table {
+  id        String  @id @default(cuid())
+  venueId   String
+  areaId    String
+  name      String
+  minSeats  Int     @default(1)
+  maxSeats  Int     @default(4)
+  shape     String  @default("RECT")
+  x         Int     @default(0)
+  y         Int     @default(0)
+  w         Int     @default(2)
+  h         Int     @default(2)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  venue        Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  area         Area               @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  reservations ReservationTable[]
+
+  @@unique([venueId, name])
+}
+
+// Service window, e.g. "Δείπνο" 19:00–23:30 on Fri/Sat. Times are "HH:MM" in venue local time.
+// daysOfWeek is a comma list of 0–6 (Sunday = 0).
+model Shift {
+  id                String  @id @default(cuid())
+  venueId           String
+  name              String
+  daysOfWeek        String  @default("0,1,2,3,4,5,6")
+  startTime         String
+  endTime           String
+  lastSeatingOffset Int     @default(90) // minutes before endTime for last bookable slot
+  durationMin       Int?    // overrides venue.defaultDurationMin
+  maxCoversPerSlot  Int?    // pacing: cap people seated per slot (null = unlimited)
+  isOnlineBookable  Boolean @default(true)
+  isActive          Boolean @default(true)
+  venue             Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+// Closed days or days with a custom note (holidays, private events). date is "YYYY-MM-DD".
+model SpecialDay {
+  id       String  @id @default(cuid())
+  venueId  String
+  date     String
+  isClosed Boolean @default(true)
+  note     String?
+  venue    Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, date])
+}
+
+// ---------- Guests ----------
+
+model Customer {
+  id          String    @id @default(cuid())
+  venueId     String
+  firstName   String
+  lastName    String?
+  phone       String
+  email       String?
+  notes       String?   // staff notes: "prefers window", etc.
+  allergies   String?
+  tags        String?   // comma list: "vip,birthday-sep"
+  birthday    String?   // "MM-DD"
+  isVip       Boolean   @default(false)
+  visits      Int       @default(0)
+  noShows     Int       @default(0)
+  lastVisitAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  venue        Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+  waitlist     WaitlistEntry[]
+
+  @@unique([venueId, phone])
+  @@index([venueId, lastName])
+}
+
+// ---------- Reservations ----------
+
+// status: PENDING | CONFIRMED | SEATED | COMPLETED | CANCELLED | NO_SHOW
+// source: WEBSITE | PHONE | WALK_IN | INSTAGRAM | GOOGLE | OTHER
+// depositStatus: NONE | REQUIRED | PAID | REFUNDED | FORFEITED
+model Reservation {
+  id            String    @id @default(cuid())
+  venueId       String
+  customerId    String
+  code          String    @unique // short public code, e.g. "RSV-7K3D9"
+  manageToken   String    @unique // secret for the guest's "my reservation" link
+  date          String    // "YYYY-MM-DD" in venue local time (fast day queries)
+  startAt       DateTime
+  endAt         DateTime
+  partySize     Int
+  status        String    @default("CONFIRMED")
+  source        String    @default("WEBSITE")
+  occasion      String?
+  guestNotes    String?
+  internalNotes String?
+  areaId        String?   // guest's preferred area (optional)
+  depositCents  Int       @default(0)
+  depositStatus String    @default("NONE")
+  confirmedAt   DateTime?
+  seatedAt      DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  venue    Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  customer Customer           @relation(fields: [customerId], references: [id])
+  area     Area?              @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  tables   ReservationTable[]
+
+  @@index([venueId, date])
+  @@index([venueId, startAt])
+}
+
+model ReservationTable {
+  reservationId String
+  tableId       String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  table         Table       @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@id([reservationId, tableId])
+}
+
+// Walk-in waiting list. status: WAITING | NOTIFIED | SEATED | LEFT
+model WaitlistEntry {
+  id            String    @id @default(cuid())
+  venueId       String
+  customerId    String
+  partySize     Int
+  quotedMinutes Int?
+  status        String    @default("WAITING")
+  notes         String?
+  createdAt     DateTime  @default(now())
+  notifiedAt    DateTime?
+  seatedAt      DateTime?
+  venue         Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  customer      Customer  @relation(fields: [customerId], references: [id])
+
+  @@index([venueId, status])
+}
