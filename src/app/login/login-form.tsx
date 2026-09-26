@@ -20,6 +20,7 @@ export function LoginForm({ next }: { next: string }) {
           type="email"
           autoComplete="email"
           required
+          defaultValue={state.email}
           className="input"
           placeholder="owner@reserve.local"
         />

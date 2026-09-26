@@ -3,7 +3,7 @@
 import { AuthError } from "next-auth";
 import { signIn } from "@/lib/auth";
 
-export type LoginState = { error?: string };
+export type LoginState = { error?: string; email?: string };
 
 export async function loginAction(
   _prev: LoginState,
@@ -19,7 +19,7 @@ export async function loginAction(
     return {};
   } catch (err) {
     if (err instanceof AuthError) {
-      return { error: "Λάθος email ή κωδικός." };
+      return { error: "Λάθος email ή κωδικός.", email: String(formData.get("email") ?? "") };
     }
     // Next.js implements redirect() by throwing; let it through.
     throw err;
