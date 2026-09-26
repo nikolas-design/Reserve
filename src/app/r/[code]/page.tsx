@@ -58,9 +58,6 @@ export default async function ManageReservationPage({ params, searchParams }: Pa
             <dd className="font-bold">{r.customer.firstName} {r.customer.lastName ?? ""}</dd>
             {r.area && (<><dt className="text-ink-3">Χώρος</dt><dd className="font-bold">{r.area.name}</dd></>)}
             {r.guestNotes && (<><dt className="text-ink-3">Σχόλια</dt><dd>{r.guestNotes}</dd></>)}
-            {r.depositCents > 0 && (
-              <><dt className="text-ink-3">Προκαταβολή</dt><dd className="font-bold num">{(r.depositCents / 100).toFixed(2)} €{r.depositStatus === "PAID" ? " · πληρώθηκε" : ""}</dd></>
-            )}
             <dt className="text-ink-3">Κωδικός</dt>
             <dd className="font-bold num">{r.code}</dd>
           </dl>

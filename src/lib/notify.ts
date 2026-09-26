@@ -47,7 +47,6 @@ export async function sendReservationEmail(
     `Πότε: ${when}`,
     `Άτομα: ${r.partySize}`,
     `Κωδικός: ${r.code}`,
-    r.depositCents ? `Προκαταβολή: ${(r.depositCents / 100).toFixed(2)} €` : ``,
     ``,
     `Αλλαγή ή ακύρωση: ${url}`,
     r.venue.address ? `${r.venue.address}${r.venue.city ? `, ${r.venue.city}` : ""}` : ``,
@@ -66,7 +65,6 @@ export async function sendReservationEmail(
         <tr><td style="padding:8px 0;color:#8a94a8">Πότε</td><td style="padding:8px 0;font-weight:700;text-align:right">${when}</td></tr>
         <tr><td style="padding:8px 0;color:#8a94a8">Άτομα</td><td style="padding:8px 0;font-weight:700;text-align:right">${r.partySize}</td></tr>
         <tr><td style="padding:8px 0;color:#8a94a8">Κωδικός</td><td style="padding:8px 0;font-weight:700;text-align:right">${r.code}</td></tr>
-        ${r.depositCents ? `<tr><td style="padding:8px 0;color:#8a94a8">Προκαταβολή</td><td style="padding:8px 0;font-weight:700;text-align:right">${(r.depositCents / 100).toFixed(2)} €</td></tr>` : ""}
       </table>
       <a href="${url}" style="display:block;margin:24px 0 8px;background:#2b5cff;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:999px;font-weight:700">Η κράτησή μου</a>
       <p style="margin:0;font-size:12px;color:#8a94a8;text-align:center">Αλλαγή ή ακύρωση από τον παραπάνω σύνδεσμο.</p>

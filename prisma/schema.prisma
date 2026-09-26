@@ -62,10 +62,7 @@ model Venue {
   maxAdvanceDays     Int     @default(60)
   autoConfirm        Boolean @default(true) // false => reservations start PENDING
 
-  // Deposit / cancellation policy
-  depositEnabled        Boolean @default(false)
-  depositPerPersonCents Int     @default(0)
-  depositFromPartySize  Int     @default(7)
+  // Cancellation policy
   cancellationHours     Int     @default(48)
   lateGraceMinutes      Int     @default(20)
   termsText             String?
@@ -179,7 +176,6 @@ model Customer {
 
 // status: PENDING | CONFIRMED | SEATED | COMPLETED | CANCELLED | NO_SHOW
 // source: WEBSITE | PHONE | WALK_IN | INSTAGRAM | GOOGLE | OTHER
-// depositStatus: NONE | REQUIRED | PAID | REFUNDED | FORFEITED
 model Reservation {
   id            String    @id @default(cuid())
   venueId       String
@@ -196,8 +192,6 @@ model Reservation {
   guestNotes    String?
   internalNotes String?
   areaId        String?   // guest's preferred area (optional)
-  depositCents  Int       @default(0)
-  depositStatus String    @default("NONE")
   confirmedAt   DateTime?
   seatedAt      DateTime?
   cancelledAt   DateTime?

@@ -62,11 +62,6 @@ export async function createGuestReservation(input: GuestBookingInput) {
   }
 
   const phone = normalizePhone(input.phone);
-  const depositCents =
-    venue.depositEnabled && input.partySize >= venue.depositFromPartySize
-      ? venue.depositPerPersonCents * input.partySize
-      : 0;
-
   return prisma.$transaction(async (tx) => {
     // Re-read active reservations inside the transaction and pick again.
     const fresh = await tx.reservation.findMany({
@@ -117,8 +112,6 @@ export async function createGuestReservation(input: GuestBookingInput) {
       occasion: input.occasion || null,
       guestNotes: input.notes || null,
       area: areaId ? { connect: { id: areaId } } : undefined,
-      depositCents,
-      depositStatus: depositCents ? "REQUIRED" : "NONE",
       confirmedAt: status === RESERVATION_STATUS.CONFIRMED ? new Date() : null,
       tables: { create: tables.map((t) => ({ table: { connect: { id: t.id } } })) },
     };

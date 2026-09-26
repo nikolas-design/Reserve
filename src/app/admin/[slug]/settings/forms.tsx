@@ -60,15 +60,9 @@ export function VenueForm({ venue: v }: { venue: Venue }) {
       </label>
 
       <div>
-        <h2 className="font-bold">Προκαταβολή & ακυρώσεις</h2>
+        <h2 className="font-bold">Ακυρώσεις</h2>
       </div>
-      <label className="flex items-center gap-2 text-sm font-semibold">
-        <input type="checkbox" name="depositEnabled" defaultChecked={v.depositEnabled} className="h-4 w-4 accent-accent" />
-        Ζητείται προκαταβολή για μεγάλες παρέες
-      </label>
-      <div className="grid gap-3 sm:grid-cols-4">
-        <F id="depositPerPerson" label="Ποσό/άτομο" hint="€" type="number" min={0} step={1} defaultValue={v.depositPerPersonCents / 100} />
-        <F id="depositFromPartySize" label="Από πόσα άτομα" type="number" min={1} defaultValue={v.depositFromPartySize} />
+      <div className="grid gap-3 sm:grid-cols-2">
         <F id="cancellationHours" label="Δωρεάν ακύρωση έως" hint="ώρες πριν" type="number" min={0} defaultValue={v.cancellationHours} />
         <F id="lateGraceMinutes" label="Ανοχή καθυστέρησης" hint="λεπτά" type="number" min={0} defaultValue={v.lateGraceMinutes} />
       </div>

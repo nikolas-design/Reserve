@@ -14,9 +14,6 @@ type Props = {
     phone: string | null;
     minParty: number;
     maxParty: number;
-    depositEnabled: boolean;
-    depositPerPersonCents: number;
-    depositFromPartySize: number;
     cancellationHours: number;
     termsText: string | null;
   };
@@ -74,10 +71,6 @@ export function BookingWidget({ venue, areas, days, initialDate, initialParty, i
 
   const anyAvailable = slots.some((s) => s.available);
   const tooBig = party > venue.maxParty;
-  const deposit =
-    venue.depositEnabled && party >= venue.depositFromPartySize
-      ? (venue.depositPerPersonCents * party) / 100
-      : 0;
   const fe = state.fieldErrors ?? {};
   // React resets uncontrolled inputs after a server action; re-seed them from the last submit.
   const v = state.values ?? {};
@@ -237,15 +230,6 @@ export function BookingWidget({ venue, areas, days, initialDate, initialParty, i
             <label htmlFor="notes" className="label">Σχόλια <span className="font-medium text-ink-3">(αλλεργίες, προτιμήσεις)</span></label>
             <textarea id="notes" name="notes" rows={2} className="input resize-none" maxLength={500} defaultValue={v.notes} />
           </div>
-
-          {deposit > 0 && (
-            <p className="flex gap-2 rounded-[14px] bg-accent-soft px-3.5 py-2.5 text-xs text-ink-2">
-              <span aria-hidden>🔒</span>
-              <span>
-                Για {party} άτομα ζητείται προκαταβολή <b className="num">{deposit.toFixed(2)} €</b>. Επιστρέφεται αν ακυρώσετε έως {venue.cancellationHours} ώρες πριν.
-              </span>
-            </p>
-          )}
 
           <label className="flex items-start gap-2.5 text-xs text-ink-2">
             <input type="checkbox" name="terms" defaultChecked={v.terms === "on"} className="mt-0.5 h-4 w-4 accent-accent" />

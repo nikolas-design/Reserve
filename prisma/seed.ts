@@ -30,9 +30,6 @@ async function main() {
       address: "Μητροπόλεως 1",
       city: "Αθήνα",
       logoText: "MR",
-      depositEnabled: true,
-      depositPerPersonCents: 2000,
-      depositFromPartySize: 7,
       termsText:
         "Σε καθυστέρηση άνω των 20 λεπτών χωρίς ενημέρωση, η κράτηση μπορεί να ακυρωθεί. Παρακαλούμε ενημερώστε μας για αλλεργίες ή διατροφικές ανάγκες.",
     },
@@ -172,7 +169,7 @@ async function main() {
     };
 
     await mk(customers[0], today, "19:30", 2, "CONFIRMED", "WEBSITE", ["T1"], { guestNotes: "Τραπέζι με θέα αν γίνεται" });
-    await mk(customers[1], today, "20:00", 6, "CONFIRMED", "PHONE", ["T14"], { occasion: "birthday", depositCents: 12000, depositStatus: "PAID" });
+    await mk(customers[1], today, "20:00", 6, "CONFIRMED", "PHONE", ["T14"], { occasion: "birthday" });
     await mk(customers[2], today, "21:00", 3, "CONFIRMED", "GOOGLE", ["T11"]);
     await mk(customers[3], today, "21:30", 2, "PENDING", "INSTAGRAM", ["T2"]);
     await mk(customers[4], tomorrow, "20:30", 4, "CONFIRMED", "WEBSITE", ["T3"]);

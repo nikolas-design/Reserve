@@ -66,9 +66,6 @@ export default async function VenueBookingPage({ params }: PageProps<"/[slug]">)
                 phone: venue.phone,
                 minParty: venue.minPartyOnline,
                 maxParty: venue.maxPartyOnline,
-                depositEnabled: venue.depositEnabled,
-                depositPerPersonCents: venue.depositPerPersonCents,
-                depositFromPartySize: venue.depositFromPartySize,
                 cancellationHours: venue.cancellationHours,
                 termsText: venue.termsText,
               }}

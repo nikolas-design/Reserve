@@ -48,7 +48,6 @@ export default async function TodayPage({ params, searchParams }: PageProps<"/ad
   const seats = tables.reduce((n, t) => n + t.maxSeats, 0);
   const pending = reservations.filter((r) => r.status === "PENDING").length;
   const noShows = reservations.filter((r) => r.status === "NO_SHOW").length;
-  const deposits = reservations.filter((r) => r.depositStatus === "PAID").reduce((n, r) => n + r.depositCents, 0);
 
   return (
     <div className="flex flex-col gap-5">
@@ -69,7 +68,7 @@ export default async function TodayPage({ params, searchParams }: PageProps<"/ad
         <Kpi label="Κρατήσεις" value={active.length} sub={pending ? `${pending} σε αναμονή` : "όλες επιβεβαιωμένες"} subTone={pending ? "text-warn" : "text-ok"} />
         <Kpi label="Άτομα" value={covers} sub={seats ? `πληρότητα ${Math.min(999, Math.round((covers / seats) * 100))}% ανά βάρδια` : ""} />
         <Kpi label="Αναμονή τώρα" value={waiting} sub={waiting ? "στη λίστα αναμονής" : "κανείς"} subTone={waiting ? "text-warn" : "text-ok"} />
-        <Kpi label="Προκαταβολές" value={`${(deposits / 100).toFixed(0)} €`} sub={`no-show ${noShows}`} subTone={noShows ? "text-bad" : "text-ok"} />
+        <Kpi label="No-show" value={noShows} sub={noShows ? "σήμερα" : "κανένα"} subTone={noShows ? "text-bad" : "text-ok"} />
       </div>
 
       {reservations.length === 0 ? (
@@ -83,7 +82,6 @@ export default async function TodayPage({ params, searchParams }: PageProps<"/ad
               r.customer.allergies ? `⚠ ${r.customer.allergies}` : null,
               r.occasion ? occasionLabel(r.occasion) : null,
               r.customer.visits === 0 ? "νέος πελάτης" : r.customer.visits >= 5 ? `${r.customer.visits} επισκέψεις` : null,
-              r.depositCents ? `προκαταβολή ${(r.depositCents / 100).toFixed(0)} €${r.depositStatus === "PAID" ? "" : " (εκκρεμεί)"}` : null,
             ].filter(Boolean) as string[];
             const tableNames = r.tables.map((t) => t.table.name).join("+");
             return (
