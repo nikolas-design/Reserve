@@ -10,7 +10,8 @@ import { ACTIVE_STATUSES, RESERVATION_STATUS, type ReservationStatus } from "@/l
 import { normalizePhone, reservationCode, secretToken } from "@/lib/ids";
 import { sendReminder, sendReservationEmail } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
-import { requireVenueAccess } from "@/lib/auth";
+import { requireUser, requireVenueAccess } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 import { hmToMinutes, zonedToUtc } from "@/lib/time";
 
 export type ActionState = { error?: string; ok?: boolean };
@@ -307,6 +308,18 @@ const venueSchema = z.object({
   reviewRequestEnabled: z.string().optional(),
   birthdayGreeting: z.string().optional(),
 });
+
+export async function changePassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  if (!user) return { error: "Δεν είστε συνδεδεμένος." };
+  const current = String(formData.get("current") ?? "");
+  const next = String(formData.get("next") ?? "");
+  if (next.length < 8) return { error: "Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες." };
+  const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  if (!(await bcrypt.compare(current, dbUser.passwordHash))) return { error: "Λάθος τρέχων κωδικός." };
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(next, 10) } });
+  return { ok: true };
+}
 
 export async function redeemReward(formData: FormData): Promise<void> {
   const id = String(formData.get("id"));

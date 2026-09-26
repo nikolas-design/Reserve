@@ -2,7 +2,7 @@
 
 import type { Area, Shift, Table, Venue } from "@prisma/client";
 import { useActionState } from "react";
-import { saveArea, saveShift, saveTable, updateVenue, type ActionState } from "../actions";
+import { changePassword, saveArea, saveShift, saveTable, updateVenue, type ActionState } from "../actions";
 
 function Msg({ state }: { state: ActionState }) {
   if (state.error) return <p className="text-sm font-semibold text-bad">{state.error}</p>;
@@ -197,6 +197,26 @@ export function TableForm({ venueId, areas, table, defaultAreaId }: { venueId: s
         <div><label htmlFor={`${p}-t-shape`} className="label">Σχήμα</label><select id={`${p}-t-shape`} name="shape" defaultValue={table?.shape ?? "RECT"} className="input py-2"><option value="RECT">Ορθογώνιο</option><option value="ROUND">Στρογγυλό</option></select></div>
       </div>
       <div className="flex items-center gap-2"><button disabled={pending} className="btn-primary py-1.5 text-xs">{pending ? "…" : "Αποθήκευση"}</button><Msg state={state} /></div>
+    </form>
+  );
+}
+
+export function PasswordForm() {
+  const [state, action, pending] = useActionState<ActionState, FormData>(changePassword, {});
+  return (
+    <form action={action} className="card flex flex-col gap-3 p-5">
+      <div>
+        <h2 className="font-bold">Ο λογαριασμός μου</h2>
+        <p className="text-sm text-ink-3">Αλλαγή κωδικού πρόσβασης.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <F id="current" label="Τρέχων κωδικός" type="password" autoComplete="current-password" required />
+        <F id="next" label="Νέος κωδικός" hint="(8+ χαρακτήρες)" type="password" autoComplete="new-password" minLength={8} required />
+      </div>
+      <div className="flex items-center gap-3">
+        <button disabled={pending} className="btn-primary">{pending ? "…" : "Αλλαγή κωδικού"}</button>
+        <Msg state={state} />
+      </div>
     </form>
   );
 }

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { myVenue } from "@/lib/venue-access";
 import { deleteArea, deleteShift, deleteTable, toggleSpecialDay } from "../actions";
-import { AreaForm, ShiftForm, TableForm, VenueForm } from "./forms";
+import { AreaForm, PasswordForm, ShiftForm, TableForm, VenueForm } from "./forms";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ρυθμίσεις" };
@@ -24,6 +24,7 @@ export default async function SettingsPage({ params }: PageProps<"/admin/[slug]/
       {!canEdit && <p className="rounded-[14px] bg-warn-soft px-4 py-3 text-sm">Έχεις ρόλο host: βλέπεις τις ρυθμίσεις αλλά δεν τις αλλάζεις.</p>}
 
       <VenueForm venue={venue} />
+      <PasswordForm />
 
       <section className="card p-5">
         <h2 className="mb-1 font-bold">Βάρδιες</h2>
