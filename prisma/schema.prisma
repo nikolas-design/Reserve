@@ -78,6 +78,14 @@ model Venue {
   // QR menu & ordering
   orderingEnabled Boolean @default(true)
 
+  // Loyalty & reviews
+  loyaltyEnabled       Boolean @default(true)
+  pointsPerVisit       Int     @default(10)
+  rewardPoints         Int     @default(100)
+  rewardText           String  @default("Ένα δωρεάν επιδόρπιο")
+  reviewRequestEnabled Boolean @default(true)
+  birthdayGreeting     Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -93,6 +101,7 @@ model Venue {
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
   orders         Order[]
+  reviews        Review[]
 }
 
 // A room / zone of the venue (Εσωτερικά, Βεράντα, Μπαρ)
@@ -176,6 +185,9 @@ model Customer {
   isVip       Boolean   @default(false)
   visits      Int       @default(0)
   noShows     Int       @default(0)
+  points      Int       @default(0)
+  rewardsRedeemed Int   @default(0)
+  birthdayGreetedYear Int?
   lastVisitAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -183,6 +195,7 @@ model Customer {
   venue        Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
   reservations Reservation[]
   waitlist     WaitlistEntry[]
+  reviews      Review[]
 
   @@unique([venueId, phone])
   @@index([venueId, lastName])
@@ -214,6 +227,8 @@ model Reservation {
   reminderSentAt   DateTime? // last reminder delivered
   guestConfirmedAt DateTime? // guest tapped "Ναι, θα έρθω"
   releasedAt       DateTime? // auto-cancelled because the guest never confirmed
+  reviewRequestedAt DateTime?
+  pointsAwarded     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -222,6 +237,7 @@ model Reservation {
   area     Area?              @relation(fields: [areaId], references: [id], onDelete: SetNull)
   tables   ReservationTable[]
   messages MessageLog[]
+  review   Review?
 
   @@index([venueId, date])
   @@index([venueId, startAt])
@@ -331,4 +347,22 @@ model OrderItem {
   notes      String?
   order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem   MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+}
+
+// ---------- Reviews ----------
+
+model Review {
+  id            String      @id @default(cuid())
+  venueId       String
+  customerId    String
+  reservationId String      @unique
+  rating        Int // 1-5
+  comment       String?
+  reply         String? // staff answer, shown to the guest
+  createdAt     DateTime    @default(now())
+  venue         Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, createdAt])
 }

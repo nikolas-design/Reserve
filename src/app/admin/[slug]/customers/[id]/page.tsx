@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatYmdShort, utcToZoned } from "@/lib/time";
 import { myVenue } from "@/lib/venue-access";
 import { CustomerForm } from "./customer-form";
+import { redeemReward } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function CustomerPage({ params }: PageProps<"/admin/[slug]/
   const { venue } = await myVenue(slug);
   const c = await prisma.customer.findFirst({
     where: { id, venueId: venue.id },
-    include: { reservations: { orderBy: { startAt: "desc" }, take: 30, include: { tables: { include: { table: true } } } } },
+    include: { reservations: { orderBy: { startAt: "desc" }, take: 30, include: { tables: { include: { table: true } }, review: true } } },
   });
   if (!c) notFound();
 
@@ -24,10 +25,19 @@ export default async function CustomerPage({ params }: PageProps<"/admin/[slug]/
         <h1 className="text-xl font-bold sm:text-2xl">{c.firstName} {c.lastName ?? ""}</h1>
         {c.isVip && <span className="pill bg-accent-soft text-accent">★ VIP</span>}
       </header>
-      <div className="grid grid-cols-3 gap-3 sm:max-w-md">
+      {venue.loyaltyEnabled && c.points >= venue.rewardPoints && (
+        <form action={redeemReward} className="flex flex-wrap items-center gap-3 rounded-[18px] bg-accent-soft px-4 py-3 text-sm">
+          <input type="hidden" name="id" value={c.id} />
+          <span>🎁 Δικαιούται: <b>{venue.rewardText}</b> ({venue.rewardPoints} πόντοι)</span>
+          <button className="btn-primary ml-auto py-2 text-xs">Εξαργύρωση</button>
+        </form>
+      )}
+      <div className="grid grid-cols-3 gap-3 sm:max-w-2xl md:grid-cols-5">
         <Stat label="Επισκέψεις" value={c.visits} />
         <Stat label="No-show" value={c.noShows} tone={c.noShows ? "text-bad" : ""} />
         <Stat label="Κρατήσεις" value={c.reservations.length} />
+        <Stat label="Πόντοι" value={c.points} tone="text-accent" />
+        <Stat label="Δώρα" value={c.rewardsRedeemed} />
       </div>
       <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
         <CustomerForm customer={{ id: c.id, firstName: c.firstName, lastName: c.lastName, phone: c.phone, email: c.email, notes: c.notes, allergies: c.allergies, tags: c.tags, birthday: c.birthday, isVip: c.isVip }} />
@@ -42,6 +52,7 @@ export default async function CustomerPage({ params }: PageProps<"/admin/[slug]/
                 <span className="text-ink-3">{r.tables.map((t) => t.table.name).join("+") || "—"}</span>
                 <span className="ml-auto"><StatusPill status={r.status} /></span>
                 {r.guestNotes && <p className="w-full text-xs text-ink-2">💬 {r.guestNotes}</p>}
+                {r.review && <p className="w-full text-xs text-ink-2">{"★".repeat(r.review.rating)}{"☆".repeat(5 - r.review.rating)} {r.review.comment ?? ""}</p>}
               </li>
             ))}
           </ul>

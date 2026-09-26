@@ -55,10 +55,12 @@ export async function setReservationStatus(formData: FormData): Promise<void> {
       },
     });
     if (next === "SEATED") {
+      const points = r.venue.loyaltyEnabled && r.pointsAwarded === 0 ? r.venue.pointsPerVisit : 0;
       await tx.customer.update({
         where: { id: r.customerId },
-        data: { visits: { increment: 1 }, lastVisitAt: now },
+        data: { visits: { increment: 1 }, lastVisitAt: now, points: { increment: points } },
       });
+      if (points) await tx.reservation.update({ where: { id }, data: { pointsAwarded: points } });
     }
     if (next === "NO_SHOW") {
       await tx.customer.update({ where: { id: r.customerId }, data: { noShows: { increment: 1 } } });
@@ -298,7 +300,30 @@ const venueSchema = z.object({
   autoReleaseEnabled: z.string().optional(),
   autoReleaseHoursBefore: z.coerce.number().int().min(1).max(72),
   smsSenderName: z.string().trim().max(11).optional().or(z.literal("")),
+  loyaltyEnabled: z.string().optional(),
+  pointsPerVisit: z.coerce.number().int().min(0).max(1000),
+  rewardPoints: z.coerce.number().int().min(1).max(100000),
+  rewardText: z.string().trim().min(1).max(80),
+  reviewRequestEnabled: z.string().optional(),
+  birthdayGreeting: z.string().optional(),
 });
+
+export async function redeemReward(formData: FormData): Promise<void> {
+  const id = String(formData.get("id"));
+  const c = await prisma.customer.findUniqueOrThrow({ where: { id }, include: { venue: true } });
+  await guard(c.venueId);
+  if (c.points < c.venue.rewardPoints) return;
+  await prisma.customer.update({ where: { id }, data: { points: { decrement: c.venue.rewardPoints }, rewardsRedeemed: { increment: 1 } } });
+  revalidatePath(`/admin/${c.venue.slug}/customers/${id}`);
+}
+
+export async function replyToReview(formData: FormData): Promise<void> {
+  const id = String(formData.get("id"));
+  const rv = await prisma.review.findUniqueOrThrow({ where: { id }, include: { venue: true } });
+  await guard(rv.venueId);
+  await prisma.review.update({ where: { id }, data: { reply: String(formData.get("reply") ?? "").trim() || null } });
+  revalidatePath(`/admin/${rv.venue.slug}/reviews`);
+}
 
 export async function sendReminderNow(formData: FormData): Promise<void> {
   const id = String(formData.get("id"));
@@ -344,6 +369,12 @@ export async function updateVenue(_prev: ActionState, formData: FormData): Promi
       autoReleaseEnabled: d.autoReleaseEnabled === "on",
       autoReleaseHoursBefore: d.autoReleaseHoursBefore,
       smsSenderName: d.smsSenderName || null,
+      loyaltyEnabled: d.loyaltyEnabled === "on",
+      pointsPerVisit: d.pointsPerVisit,
+      rewardPoints: d.rewardPoints,
+      rewardText: d.rewardText,
+      reviewRequestEnabled: d.reviewRequestEnabled === "on",
+      birthdayGreeting: d.birthdayGreeting === "on",
     },
   });
   revalidatePath(`/admin/${venue.slug}`, "layout");

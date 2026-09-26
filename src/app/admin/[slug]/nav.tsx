@@ -10,6 +10,7 @@ const items = [
   { href: "/orders", label: "Παραγγελίες" },
   { href: "/menu", label: "Μενού" },
   { href: "/customers", label: "Πελάτες" },
+  { href: "/reviews", label: "Αξιολογήσεις" },
   { href: "/reports", label: "Αναφορές" },
   { href: "/share", label: "Προώθηση" },
   { href: "/settings", label: "Ρυθμίσεις" },

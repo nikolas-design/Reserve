@@ -14,7 +14,7 @@ export default async function ManageReservationPage({ params, searchParams }: Pa
   const { t, new: isNew, confirmed } = await searchParams;
   const r = await prisma.reservation.findUnique({
     where: { code },
-    include: { venue: true, customer: true, area: true },
+    include: { venue: true, customer: true, area: true, review: true },
   });
   if (!r || typeof t !== "string" || t !== r.manageToken) notFound();
 
@@ -22,6 +22,7 @@ export default async function ManageReservationPage({ params, searchParams }: Pa
   const status = r.status as ReservationStatus;
   const cancellable = canGuestCancel(r, r.venue);
   const active = status === "CONFIRMED" || status === "PENDING" || status === "SEATED";
+  const visited = status === "SEATED" || status === "COMPLETED";
   const tone =
     status === "CANCELLED" || status === "NO_SHOW"
       ? "bg-bad-soft text-bad"
@@ -93,7 +94,21 @@ export default async function ManageReservationPage({ params, searchParams }: Pa
             </div>
           )}
           {!active && (
-            <Link href={`/${r.venue.slug}`} className="btn-primary w-full">Κάντε νέα κράτηση</Link>
+            <div className="flex flex-col gap-2">
+              {visited && !r.review && (
+                <Link href={`/review/${r.code}?t=${r.manageToken}`} className="btn-primary w-full">Πώς ήταν; Αξιολογήστε μας ★</Link>
+              )}
+              {r.review && <p className="text-center text-sm text-ink-2">Ευχαριστούμε για την αξιολόγηση {"★".repeat(r.review.rating)}</p>}
+              <Link href={`/${r.venue.slug}`} className={r.review || !visited ? "btn-primary w-full" : "btn-ghost w-full"}>Κάντε νέα κράτηση</Link>
+            </div>
+          )}
+          {r.venue.loyaltyEnabled && r.customer.points > 0 && (
+            <p className="rounded-[14px] bg-accent-soft px-4 py-3 text-center text-sm text-ink-2">
+              Έχετε <b className="num text-accent">{r.customer.points}</b> πόντους.{" "}
+              {r.customer.points >= r.venue.rewardPoints
+                ? <>Σας περιμένει: <b>{r.venue.rewardText}</b>. Πείτε το στο προσωπικό!</>
+                : <>Ακόμα <b className="num">{r.venue.rewardPoints - r.customer.points}</b> για: {r.venue.rewardText}.</>}
+            </p>
           )}
         </div>
       </div>

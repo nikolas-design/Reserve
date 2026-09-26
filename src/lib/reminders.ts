@@ -3,7 +3,8 @@
 // admin "send reminder now" button.
 
 import { RESERVATION_STATUS } from "./constants";
-import { sendCancellationEmail, sendReminder } from "./notify";
+import { sendBirthdayEmail, sendCancellationEmail, sendReminder, sendReviewRequest } from "./notify";
+import { utcToZoned } from "./time";
 import { prisma } from "./prisma";
 
 export async function runReminders(now = new Date()) {
@@ -60,4 +61,47 @@ export async function runReminders(now = new Date()) {
     }
   }
   return summary;
+}
+
+/** Ask for a review ~1h after the visit ended; award nothing yet (points come with the review). */
+export async function runReviewRequests(now = new Date()) {
+  let sent = 0;
+  const venues = await prisma.venue.findMany({ where: { reviewRequestEnabled: true } });
+  for (const v of venues) {
+    const due = await prisma.reservation.findMany({
+      where: {
+        venueId: v.id,
+        status: { in: ["SEATED", "COMPLETED"] },
+        reviewRequestedAt: null,
+        endAt: { lt: new Date(now.getTime() - 3600_000), gt: new Date(now.getTime() - 3 * 86400_000) },
+        customer: { email: { not: null } },
+      },
+      include: { customer: true, venue: true },
+      take: 200,
+    });
+    for (const r of due) {
+      await prisma.reservation.update({ where: { id: r.id }, data: { reviewRequestedAt: now } });
+      try { await sendReviewRequest(r); sent++; } catch (e) { console.error("[review]", r.code, e); }
+    }
+  }
+  return sent;
+}
+
+/** Birthday wishes once per year, on the day, in the venue's timezone. */
+export async function runBirthdays(now = new Date()) {
+  let sent = 0;
+  const venues = await prisma.venue.findMany({ where: { birthdayGreeting: true } });
+  for (const v of venues) {
+    const { ymd } = utcToZoned(now, v.timezone);
+    const year = Number(ymd.slice(0, 4));
+    const mmdd = ymd.slice(5);
+    const people = await prisma.customer.findMany({
+      where: { venueId: v.id, birthday: mmdd, email: { not: null }, OR: [{ birthdayGreetedYear: null }, { birthdayGreetedYear: { lt: year } }] },
+    });
+    for (const c of people) {
+      await prisma.customer.update({ where: { id: c.id }, data: { birthdayGreetedYear: year } });
+      try { await sendBirthdayEmail(c, v); sent++; } catch (e) { console.error("[birthday]", c.id, e); }
+    }
+  }
+  return sent;
 }

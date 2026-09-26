@@ -100,6 +100,28 @@ export function VenueForm({ venue: v }: { venue: Venue }) {
       <div className="grid gap-3 sm:grid-cols-3">
         <F id="autoReleaseHoursBefore" label="Πόσες ώρες πριν την άφιξη" type="number" min={1} max={72} defaultValue={v.autoReleaseHoursBefore} />
       </div>
+
+      <div>
+        <h2 className="font-bold">Πρόγραμμα επιβράβευσης & αξιολογήσεις</h2>
+        <p className="text-sm text-ink-3">Πόντοι σε κάθε επίσκεψη, δώρο όταν συμπληρωθούν, αξιολόγηση μετά την επίσκεψη και ευχές γενεθλίων.</p>
+      </div>
+      <label className="flex items-center gap-2 text-sm font-semibold">
+        <input type="checkbox" name="loyaltyEnabled" defaultChecked={v.loyaltyEnabled} className="h-4 w-4 accent-accent" />
+        Ενεργό πρόγραμμα πόντων
+      </label>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <F id="pointsPerVisit" label="Πόντοι ανά επίσκεψη" type="number" min={0} defaultValue={v.pointsPerVisit} />
+        <F id="rewardPoints" label="Πόντοι για δώρο" type="number" min={1} defaultValue={v.rewardPoints} />
+        <F id="rewardText" label="Το δώρο" defaultValue={v.rewardText} placeholder="Ένα δωρεάν επιδόρπιο" />
+      </div>
+      <label className="flex items-center gap-2 text-sm font-semibold">
+        <input type="checkbox" name="reviewRequestEnabled" defaultChecked={v.reviewRequestEnabled} className="h-4 w-4 accent-accent" />
+        Αίτημα αξιολόγησης με email μετά την επίσκεψη
+      </label>
+      <label className="flex items-center gap-2 text-sm font-semibold">
+        <input type="checkbox" name="birthdayGreeting" defaultChecked={v.birthdayGreeting} className="h-4 w-4 accent-accent" />
+        Ευχές γενεθλίων με email (όταν είναι γνωστή η ημερομηνία)
+      </label>
       <div className="flex items-center gap-3">
         <button disabled={pending} className="btn-primary">{pending ? "Αποθήκευση…" : "Αποθήκευση"}</button>
         <Msg state={state} />

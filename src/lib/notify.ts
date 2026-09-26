@@ -14,7 +14,7 @@ import { formatYmdLong, formatYmdShort, utcToZoned } from "./time";
 
 type Mail = { to: string; subject: string; html: string; text: string };
 type Full = Reservation & { customer: Customer; venue: Venue };
-type Kind = "confirmation" | "reminder" | "cancellation" | "release";
+type Kind = "confirmation" | "reminder" | "cancellation" | "release" | "review";
 
 export function appUrl() {
   return (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -26,6 +26,10 @@ export function manageUrl(r: Reservation) {
 
 export function confirmUrl(r: Reservation) {
   return `${appUrl()}/c/${r.code}/${r.manageToken}`;
+}
+
+export function reviewUrl(r: Reservation) {
+  return `${appUrl()}/review/${r.code}?t=${r.manageToken}`;
 }
 
 async function log(r: Full, channel: string, kind: Kind, to: string, body: string, status: string, error?: string) {
@@ -158,6 +162,29 @@ export async function sendReminder(r: Full) {
   }
   await prisma.reservation.update({ where: { id: r.id }, data: { reminderSentAt: new Date() } });
   return results;
+}
+
+export async function sendReviewRequest(r: Full) {
+  if (!r.customer.email) return;
+  const url = reviewUrl(r);
+  const text = `Γεια σας ${r.customer.firstName},\nευχαριστούμε που ήρθατε στο ${r.venue.name}! Πώς ήταν; Πείτε μας με ένα κλικ: ${url}`;
+  const html = layout(r, "Πώς ήταν;", `Γεια σας ${r.customer.firstName}, ευχαριστούμε που ήρθατε. Θα θέλαμε τη γνώμη σας, παίρνει 10 δευτερόλεπτα.`,
+    [["Επίσκεψη", when(r)]],
+    [1, 2, 3, 4, 5].map((n) => ({ href: `${url}&rating=${n}`, label: `${"★".repeat(n)}${"☆".repeat(5 - n)}`, ghost: n < 5 })));
+  const res = await sendMail({ to: r.customer.email, subject: `Πώς ήταν στο ${r.venue.name};`, html, text });
+  await log(r, "email", "review", r.customer.email, text, res.status, res.error);
+}
+
+export async function sendBirthdayEmail(c: Customer, v: Venue) {
+  if (!c.email) return;
+  const text = `Χρόνια πολλά ${c.firstName}! 🎂\nΑπό όλους μας στο ${v.name}. Σας περιμένουμε να το γιορτάσουμε μαζί: ${appUrl()}/${v.slug}`;
+  const res = await sendMail({
+    to: c.email,
+    subject: `Χρόνια πολλά από το ${v.name} 🎂`,
+    text,
+    html: `<div style="font-family:system-ui;line-height:1.6;max-width:520px;margin:0 auto;padding:32px 16px"><h1 style="color:${v.brandColor}">Χρόνια πολλά ${c.firstName}! 🎂</h1><p>Από όλους μας στο ${v.name}. Σας περιμένουμε να το γιορτάσουμε μαζί.</p><a href="${appUrl()}/${v.slug}" style="display:inline-block;background:${v.brandColor};color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700">Κράτηση τραπεζιού</a></div>`,
+  });
+  await prisma.messageLog.create({ data: { venueId: v.id, channel: "email", kind: "birthday", to: c.email, body: text, status: res.status, error: res.error } }).catch(() => {});
 }
 
 function layout(r: Full, title: string, intro: string, rows: [string, string][], buttons: { href: string; label: string; ghost?: boolean }[]) {

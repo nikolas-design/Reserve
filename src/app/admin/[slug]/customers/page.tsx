@@ -44,7 +44,7 @@ export default async function CustomersPage({ params, searchParams }: PageProps<
                 <p className="text-xs text-ink-3 num">{c.phone}{c.email ? ` · ${c.email}` : ""}</p>
               </div>
               <div className="text-right text-xs text-ink-3">
-                <p><b className="num text-ink">{c.visits}</b> επισκέψεις{c.noShows ? <> · <b className="num text-bad">{c.noShows}</b> no-show</> : null}</p>
+                <p><b className="num text-ink">{c.visits}</b> επισκέψεις{c.points ? <> · <b className="num text-accent">{c.points}</b> πόντοι</> : null}{c.noShows ? <> · <b className="num text-bad">{c.noShows}</b> no-show</> : null}</p>
                 {c.tags && <p className="truncate">{c.tags.split(",").map((t) => `#${t.trim()}`).join(" ")}</p>}
               </div>
             </Link>
