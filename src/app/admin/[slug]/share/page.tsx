@@ -1,6 +1,7 @@
 import QRCode from "qrcode";
 import { appUrl } from "@/lib/notify";
 import { myVenue } from "@/lib/venue-access";
+import { prisma } from "@/lib/prisma";
 import { CopyBox } from "./copy-box";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,8 @@ export const metadata = { title: "Προώθηση" };
 
 export default async function SharePage({ params }: PageProps<"/admin/[slug]/share">) {
   const { slug } = await params;
-  await myVenue(slug);
+  const { venue } = await myVenue(slug);
+  const tables = await prisma.table.findMany({ where: { venueId: venue.id, isActive: true }, orderBy: { sortOrder: "asc" } });
   const base = appUrl();
   const link = `${base}/${slug}`;
   const qr = await QRCode.toString(`${link}?channel=qr`, { type: "svg", margin: 1, width: 220, color: { dark: "#0b1220", light: "#ffffff" } });
@@ -36,6 +38,17 @@ export default async function SharePage({ params }: PageProps<"/admin/[slug]/sha
             <div className="w-[180px] rounded-[14px] border border-line bg-white p-2" dangerouslySetInnerHTML={{ __html: qr }} />
             <a href={`/admin/${slug}/share/qr.svg`} download={`${slug}-qr.svg`} className="btn-ghost text-xs">⬇ Λήψη SVG</a>
           </div>
+        </section>
+
+        <section className="card flex flex-col gap-3 p-5 lg:col-span-2">
+          <h2 className="font-bold">QR μενού & παραγγελία ανά τραπέζι</h2>
+          <p className="text-sm text-ink-3">Τυπώστε ένα ανά τραπέζι. Ο πελάτης βλέπει το μενού και παραγγέλνει από το κινητό του.</p>
+          <div className="flex flex-wrap gap-2">
+            {tables.map((t) => (
+              <a key={t.id} href={`/admin/${slug}/share/qr.svg?menu=${encodeURIComponent(t.name)}`} download={`${slug}-menu-${t.name}.svg`} className="btn-ghost py-1.5 text-xs">⬇ {t.name}</a>
+            ))}
+          </div>
+          <CopyBox label="Σύνδεσμος μενού (χωρίς παραγγελία)" value={`${base}/m/${slug}`} />
         </section>
 
         <section className="card flex flex-col gap-3 p-5 lg:col-span-2">

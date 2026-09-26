@@ -175,6 +175,21 @@ async function main() {
     await mk(customers[4], tomorrow, "20:30", 4, "CONFIRMED", "WEBSITE", ["T3"]);
   }
 
+  if ((await prisma.menuCategory.count({ where: { venueId: venue.id } })) === 0) {
+    const cats = [
+      ["Ορεκτικά", [["Ντάκος", "Παξιμάδι, ντομάτα, φέτα, ελιές", 850, "vegetarian"], ["Κολοκυθοκεφτέδες", "Με τζατζίκι", 900, "vegetarian,popular"], ["Χταπόδι σχάρας", "Με φάβα και καραμελωμένα κρεμμύδια", 1650, ""]]],
+      ["Κυρίως", [["Μοσχαρίσιο μάγουλο", "Με πουρέ σελινόριζας", 2400, "popular"], ["Λαβράκι φιλέτο", "Με χόρτα εποχής", 2600, "gluten-free"], ["Ριζότο μανιταριών", "Με τρούφα", 1900, "vegetarian"]]],
+      ["Cocktails", [["Acropolis Sour", "Μαστίχα, λεμόνι, ασπράδι", 1200, "popular"], ["Negroni", "", 1100, ""], ["Virgin Mojito", "", 800, "new"]]],
+      ["Επιδόρπια", [["Γαλακτομπούρεκο", "Με παγωτό μαστίχα", 900, ""], ["Σοκολατόπιτα", "", 950, "vegetarian"]]],
+    ] as const;
+    for (const [ci, [name, items]] of cats.entries()) {
+      const cat = await prisma.menuCategory.create({ data: { venueId: venue.id, name, sortOrder: ci } });
+      await prisma.menuItem.createMany({
+        data: items.map(([n, d, price, tags], i) => ({ venueId: venue.id, categoryId: cat.id, name: n, description: d || null, priceCents: price, tags: tags || null, sortOrder: i })),
+      });
+    }
+  }
+
   console.log("Seeded venue:", venue.slug, "| login: owner@reserve.local / reserve123");
 }
 
