@@ -9,6 +9,7 @@ import { prisma } from "./prisma";
 
 export const guestBookingSchema = z.object({
   venueSlug: z.string().min(1),
+  channel: z.enum(["WEBSITE", "INSTAGRAM", "GOOGLE"]).catch("WEBSITE"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Επιλέξτε ημέρα."),
   time: z.string().regex(/^\d{2}:\d{2}$/, "Επιλέξτε ώρα."),
   partySize: z.coerce.number().int().min(1).max(50),
@@ -108,7 +109,7 @@ export async function createGuestReservation(input: GuestBookingInput) {
       endAt: slot.endAt,
       partySize: input.partySize,
       status,
-      source: "WEBSITE",
+      source: input.channel,
       occasion: input.occasion || null,
       guestNotes: input.notes || null,
       area: areaId ? { connect: { id: areaId } } : undefined,

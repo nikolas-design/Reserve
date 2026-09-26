@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { computeSlots, loadDayContext, upcomingDays } from "@/lib/availability";
 import { prisma } from "@/lib/prisma";
 import { BookingWidget } from "./booking-widget";
+import { EmbedResize } from "./embed-resize";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,14 @@ export async function generateMetadata({ params }: PageProps<"/[slug]">): Promis
   return { title: `Κράτηση · ${venue.name}`, description: venue.tagline ?? undefined };
 }
 
-export default async function VenueBookingPage({ params }: PageProps<"/[slug]">) {
+export default async function VenueBookingPage({ params, searchParams }: PageProps<"/[slug]">) {
   const { slug } = await params;
+  const sp = await searchParams;
   const venue = await getVenue(slug);
   if (!venue) notFound();
+  // ?embed=1 renders a compact frame for iframes; ?channel=instagram|google tags the source.
+  const embed = sp.embed === "1";
+  const channel = String(sp.channel ?? "website").toUpperCase();
 
   const days = upcomingDays(venue, venue.shifts, 14);
   const firstDay = days[0];
@@ -38,10 +43,11 @@ export default async function VenueBookingPage({ params }: PageProps<"/[slug]">)
     : [];
 
   return (
-    <div className="flex-1 px-4 py-6 sm:py-10">
+    <div className={embed ? "flex-1 px-0 py-0" : "flex-1 px-4 py-6 sm:py-10"}>
+      {embed && <EmbedResize />}
       <div className="mx-auto w-full max-w-md">
-        <div className="card overflow-hidden shadow-[var(--shadow)] sm:rounded-[36px]">
-          <div
+        <div className={embed ? "card overflow-hidden border-0 rounded-none" : "card overflow-hidden shadow-[var(--shadow)] sm:rounded-[36px]"}>
+          {!embed && <div
             className="relative h-36"
             style={{
               background: `linear-gradient(120deg, #0b1220 0%, ${venue.brandColor} 60%, #7ce7ff 100%)`,
@@ -50,8 +56,8 @@ export default async function VenueBookingPage({ params }: PageProps<"/[slug]">)
             <span className="absolute -bottom-6 left-5 grid h-14 w-14 place-items-center rounded-[18px] border border-line bg-surface font-display text-lg font-extrabold text-accent">
               {venue.logoText ?? venue.name.slice(0, 2).toUpperCase()}
             </span>
-          </div>
-          <div className="flex flex-col gap-5 px-5 pb-6 pt-9">
+          </div>}
+          <div className={`flex flex-col gap-5 px-5 pb-6 ${embed ? "pt-5" : "pt-9"}`}>
             <header>
               <h1 className="text-xl font-bold">{venue.name}</h1>
               <p className="mt-0.5 text-sm text-ink-3">
@@ -74,12 +80,15 @@ export default async function VenueBookingPage({ params }: PageProps<"/[slug]">)
               initialDate={firstDay ?? null}
               initialParty={defaultParty}
               initialSlots={initialSlots}
+              channel={channel}
             />
           </div>
         </div>
-        <p className="mt-4 text-center text-xs text-ink-3">
-          Powered by <span className="font-display font-bold text-ink-2">Reserve</span>
-        </p>
+        {!embed && (
+          <p className="mt-4 text-center text-xs text-ink-3">
+            Powered by <span className="font-display font-bold text-ink-2">Reserve</span>
+          </p>
+        )}
       </div>
     </div>
   );

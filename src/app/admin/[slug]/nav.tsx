@@ -9,6 +9,7 @@ const items = [
   { href: "/waitlist", label: "Λίστα αναμονής" },
   { href: "/customers", label: "Πελάτες" },
   { href: "/reports", label: "Αναφορές" },
+  { href: "/share", label: "Προώθηση" },
   { href: "/settings", label: "Ρυθμίσεις" },
 ];
 

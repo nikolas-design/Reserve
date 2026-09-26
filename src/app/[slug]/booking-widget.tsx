@@ -22,9 +22,10 @@ type Props = {
   initialDate: string | null;
   initialParty: number;
   initialSlots: SlotDto[];
+  channel: string;
 };
 
-export function BookingWidget({ venue, areas, days, initialDate, initialParty, initialSlots }: Props) {
+export function BookingWidget({ venue, areas, days, initialDate, initialParty, initialSlots, channel }: Props) {
   const [date, setDate] = useState<string | null>(initialDate);
   const [party, setParty] = useState(initialParty);
   const [areaId, setAreaId] = useState("");
@@ -78,6 +79,7 @@ export function BookingWidget({ venue, areas, days, initialDate, initialParty, i
   return (
     <form action={formAction} className="flex flex-col gap-5">
       <input type="hidden" name="venueSlug" value={venue.slug} />
+      <input type="hidden" name="channel" value={channel} />
       <input type="hidden" name="date" value={date ?? ""} />
       <input type="hidden" name="time" value={time ?? ""} />
       <input type="hidden" name="partySize" value={party} />
