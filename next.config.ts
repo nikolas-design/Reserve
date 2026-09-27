@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Self-contained build for uploading to a Node.js host (Plesk, cPanel, VPS).
+  output: "standalone",
 };
 
 export default nextConfig;

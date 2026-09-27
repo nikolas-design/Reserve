@@ -6,7 +6,9 @@ import { runBirthdays, runReminders, runReviewRequests } from "@/lib/reminders";
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const auth = request.headers.get("authorization") ?? "";
-  if (secret && auth !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
+  // ?key= lets simple schedulers (Plesk "Fetch a URL") authenticate without headers.
+  const key = request.nextUrl.searchParams.get("key");
+  if (secret && auth !== `Bearer ${secret}` && key !== secret) return new Response("Unauthorized", { status: 401 });
   if (!secret && process.env.NODE_ENV === "production") return new Response("CRON_SECRET not set", { status: 500 });
   const summary = await runReminders();
   const reviewsRequested = await runReviewRequests();

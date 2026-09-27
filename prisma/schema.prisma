@@ -3,7 +3,9 @@
 // Status-like fields are strings (see src/lib/constants.ts) so the schema works on both databases.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Engines for the common Linux hosts (Debian/Ubuntu, CentOS/AlmaLinux, Alpine)
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x", "rhel-openssl-3.0.x", "rhel-openssl-1.1.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
